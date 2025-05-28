@@ -19,6 +19,33 @@ set(CMAKE_INSTALL_SO_NO_EXE False)
 project(libaribb25 VERSION 0.2.9 LANGUAGES C CXX)
 enable_language("CXX")
 
+# cmake-rs互換性のための設定
+if(DEFINED ENV{CARGO_CFG_TARGET_ARCH})
+	message(STATUS "Detected cargo build environment")
+	if($ENV{CARGO_CFG_TARGET_ARCH} STREQUAL "x86")
+		set(CMAKE_SYSTEM_PROCESSOR "i686")
+	endif()
+endif()
+
+# クロスコンパイル設定
+if(CMAKE_CROSSCOMPILING)
+	message(STATUS "Cross compiling detected")
+	message(STATUS "Target system: ${CMAKE_SYSTEM_NAME}")
+	message(STATUS "Target processor: ${CMAKE_SYSTEM_PROCESSOR}")
+	
+	# マルチアーキテクチャ対応のライブラリパス設定
+	if(CMAKE_SYSTEM_PROCESSOR MATCHES "i.86")
+		list(APPEND CMAKE_LIBRARY_PATH "/usr/lib/i386-linux-gnu" "/lib/i386-linux-gnu")
+		list(APPEND CMAKE_INCLUDE_PATH "/usr/include/i386-linux-gnu")
+		
+		# i686向けコンパイラフラグ
+		set(CMAKE_C_FLAGS "-m32 ${CMAKE_C_FLAGS}")
+		set(CMAKE_CXX_FLAGS "-m32 ${CMAKE_CXX_FLAGS}")
+		set(CMAKE_SHARED_LINKER_FLAGS "-m32 ${CMAKE_SHARED_LINKER_FLAGS}")
+		set(CMAKE_EXE_LINKER_FLAGS "-m32 ${CMAKE_EXE_LINKER_FLAGS}")
+	endif()
+endif()
+
 include(GitRevision)
 include(GenerateExportHeader)
 include(GNUInstallDirs)
@@ -33,7 +60,20 @@ endif()
 if(WIN32)
 	option(USE_UNICODE "enable unicode support" ON)
 endif()
-option(USE_AVX2 "enable AVX2" OFF)
+
+# アーキテクチャ固有のSIMD設定
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "i.86")
+	# i686では高度なSIMD命令を無効化
+	set(USE_AVX2 OFF CACHE BOOL "AVX2 is not supported on i686" FORCE)
+	option(USE_SSE2 "enable SSE2 for i686" ON)
+	message(STATUS "i686 target: AVX2 disabled, SSE2 available")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+	option(USE_AVX2 "enable AVX2" OFF)
+	option(USE_SSE2 "enable SSE2" ON)
+else()
+	option(USE_AVX2 "enable AVX2" OFF)
+endif()
+
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(ARM|ARM64|AARCH64)")
 	option(USE_NEON "enable NEON" OFF)
 endif()
@@ -100,10 +140,12 @@ if(CMAKE_C_COMPILER_ID MATCHES "(GNU|Clang)")
 		set(CMAKE_C_FLAGS   "-municode ${CMAKE_C_FLAGS}")
 		set(CMAKE_CXX_FLAGS "-municode ${CMAKE_CXX_FLAGS}")
 	endif()
-
 	if(USE_AVX2)
 		set(CMAKE_C_FLAGS   "-mavx2 ${CMAKE_C_FLAGS}")
 		set(CMAKE_CXX_FLAGS "-mavx2 ${CMAKE_CXX_FLAGS}")
+	elseif(USE_SSE2)
+		set(CMAKE_C_FLAGS   "-msse2 ${CMAKE_C_FLAGS}")
+		set(CMAKE_CXX_FLAGS "-msse2 ${CMAKE_CXX_FLAGS}")
 	endif()
 	if(USE_NEON)
 		set(CMAKE_C_FLAGS   "-mfpu=neon ${CMAKE_C_FLAGS}")

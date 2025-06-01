@@ -1,3 +1,4 @@
+
 # libaribb25
 
 ## このフォークについて
@@ -204,28 +205,6 @@ sudo make install
 
 `sudo make install` でビルドした libaribb1 / libaribb25 をインストールします。  
 `build/` ディレクトリで `sudo make uninstall` を実行することで、インストールしたファイルをアンインストールすることができます。
-
-#### クロスコンパイル (i686)
-
-x86_64環境でi686向けにクロスコンパイルする場合：
-
-```bash
-# 必要なクロスコンパイル環境をインストール (Ubuntu/Debian)
-sudo apt install gcc-multilib g++-multilib libc6-dev-i386
-sudo apt install libpcsclite-dev:i386
-
-# i686向けビルド
-cmake -B build -DCMAKE_TOOLCHAIN_FILE=cmake/Toolchain-i686-linux-gnu.cmake
-cd build
-make
-sudo make install
-```
-
-cargo経由でcmake-rsを使用する場合：
-
-```bash
-cargo build --target=i686-unknown-linux-gnu
-```
 
 -----
 

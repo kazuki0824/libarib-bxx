@@ -5,8 +5,8 @@ set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR i686)
 
 # Specify the cross compiler
-set(CMAKE_C_COMPILER i686-linux-gnu-gcc)
-set(CMAKE_CXX_COMPILER i686-linux-gnu-g++)
+#set(CMAKE_C_COMPILER i686-linux-gnu-gcc)
+#set(CMAKE_CXX_COMPILER i686-linux-gnu-g++)
 
 # Specify the target environment (optional)
 set(CMAKE_FIND_ROOT_PATH /usr/i686-linux-gnu)
@@ -19,7 +19,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
 # Set pkg-config for cross compilation
-set(PKG_CONFIG_EXECUTABLE i686-linux-gnu-pkg-config)
+#set(PKG_CONFIG_EXECUTABLE i686-linux-gnu-pkg-config)
 
 # PC/SC library configuration for cross compilation
 set(WITH_PCSC_PACKAGE "libpcsclite" CACHE STRING "pkg-config package name for PC/SC")

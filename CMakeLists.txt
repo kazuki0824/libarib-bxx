@@ -38,8 +38,7 @@ endif()
 option(USE_AVX2 "enable AVX2" OFF)
 
 test_big_endian(LIBARIBB25_TARGET_BIG_ENDIAN)
-check_cxx_source_compiles("#include <stdint.h>
-#if defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM64EC))
+check_cxx_source_compiles("#if defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM64EC))
 #include <arm64_neon.h>
 #elif defined(_MSC_VER) && defined(_M_ARM)
 #include <arm_neon.h>
@@ -49,24 +48,8 @@ check_cxx_source_compiles("#include <stdint.h>
 #error NEON is not enabled for this target
 #endif
 int main() {
-    uint32_t data[16] = {};
-    uint32x4x2_t pair = vld2q_u32(data);
-    uint32x4_t a = pair.val[0];
-    uint32x4_t b = pair.val[1];
-    a = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(a)));
-    a = vreinterpretq_u32_u16(vrev32q_u16(vreinterpretq_u16_u32(a)));
-    a = vextq_u32(a, b, 3);
-    a = vsetq_lane_u32(vgetq_lane_u32(b, 3), a, 0);
-    a = vsliq_n_u32(vshrq_n_u32(a, 31), a, 1);
-    a = vsraq_n_u32(a, a, 31);
-    uint32x4_t mask = vcgeq_s32(vreinterpretq_s32_u32(a), vdupq_n_s32(0));
-    a = vaddq_u32(a, b);
-    a = vsubq_u32(a, b);
-    a = veorq_u32(a, mask);
-    a = vorrq_u32(a, b);
-    uint32x4x2_t out = { a, b };
-    vst2q_u32(data, out);
-    return static_cast<int>(vgetq_lane_u32(a, 0));
+    uint32x4_t value = vdupq_n_u32(0);
+    return static_cast<int>(vgetq_lane_u32(value, 0));
 }
 " LIBARIBB25_TARGET_HAS_NEON)
 

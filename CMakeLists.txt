@@ -22,6 +22,7 @@ enable_language("CXX")
 include(GitRevision)
 include(GenerateExportHeader)
 include(GNUInstallDirs)
+include(CheckCXXSourceCompiles)
 find_package(PCSC REQUIRED)
 
 if(UNIX OR MSYS)
@@ -34,8 +35,25 @@ if(WIN32)
 	option(USE_UNICODE "enable unicode support" ON)
 endif()
 option(USE_AVX2 "enable AVX2" OFF)
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "(ARM|ARM64|AARCH64)")
-	option(USE_NEON "enable NEON" OFF)
+
+check_cxx_source_compiles("#if defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM64EC))
+#include <arm64_neon.h>
+#elif defined(__ARM_NEON__) || defined(__ARM_NEON)
+#include <arm_neon.h>
+#else
+#error NEON is not enabled for this target
+#endif
+int main() {
+    uint32x4_t value = vdupq_n_u32(1);
+    return static_cast<int>(vgetq_lane_u32(value, 0));
+}
+" LIBARIBB25_TARGET_HAS_NEON)
+option(USE_NEON "enable NEON when supported by the compiler target" ${LIBARIBB25_TARGET_HAS_NEON})
+if(USE_NEON AND NOT LIBARIBB25_TARGET_HAS_NEON)
+	message(FATAL_ERROR "USE_NEON=ON requested, but the current compiler target cannot compile NEON intrinsics")
+endif()
+if(USE_NEON)
+	add_definitions("-DLIBARIBB25_USE_NEON")
 endif()
 
 option(BUILD_SHARED_B25 "build shared b25" ON)
@@ -106,10 +124,6 @@ if(CMAKE_C_COMPILER_ID MATCHES "(GNU|Clang)")
 	if(USE_AVX2)
 		set(CMAKE_C_FLAGS   "-mavx2 ${CMAKE_C_FLAGS}")
 		set(CMAKE_CXX_FLAGS "-mavx2 ${CMAKE_CXX_FLAGS}")
-	endif()
-	if(USE_NEON)
-		set(CMAKE_C_FLAGS   "-mfpu=neon ${CMAKE_C_FLAGS}")
-		set(CMAKE_CXX_FLAGS "-mfpu=neon ${CMAKE_CXX_FLAGS}")
 	endif()
 elseif(CMAKE_C_COMPILER_ID MATCHES "MSVC")
 	add_definitions("-D_CRT_SECURE_NO_WARNINGS")

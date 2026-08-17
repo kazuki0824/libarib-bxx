@@ -219,7 +219,7 @@ inline void decrypt_cbc_ofb(uint8_t *buf, size_t n, const iv_type &iv, const wor
 		memset(&t[n], 0,   8 - n);
 
 		block<uint32_t> c;
-		c.load(buf);
+		c.load(&t[0]);
 
 		block<uint32_t> p = c ^ cipher<uint32_t>::encrypt(state, key, round);
 		p.store(&t[0]);

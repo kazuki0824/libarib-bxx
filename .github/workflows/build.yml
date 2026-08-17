@@ -100,6 +100,6 @@ jobs:
         run: |
           cmake --version
           cmake -B build-arm64 -A ARM64
-          Select-String -Path build-arm64/CMakeCache.txt -Pattern '^USE_NEON:BOOL=ON$'
+          if (-not (Select-String -Path build-arm64/CMakeCache.txt -Pattern '^USE_NEON:BOOL=ON$' -Quiet)) { throw 'USE_NEON is not enabled' }
       - name: build
         run: cmake --build build-arm64 --config Release

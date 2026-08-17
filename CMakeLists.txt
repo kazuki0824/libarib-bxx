@@ -23,6 +23,7 @@ include(GitRevision)
 include(GenerateExportHeader)
 include(GNUInstallDirs)
 include(CheckCXXSourceCompiles)
+include(TestBigEndian)
 find_package(PCSC REQUIRED)
 
 if(UNIX OR MSYS)
@@ -36,21 +37,49 @@ if(WIN32)
 endif()
 option(USE_AVX2 "enable AVX2" OFF)
 
-check_cxx_source_compiles("#if defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM64EC))
+test_big_endian(LIBARIBB25_TARGET_BIG_ENDIAN)
+check_cxx_source_compiles("#include <stdint.h>
+#if defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM64EC))
 #include <arm64_neon.h>
+#elif defined(_MSC_VER) && defined(_M_ARM)
+#include <arm_neon.h>
 #elif defined(__ARM_NEON__) || defined(__ARM_NEON)
 #include <arm_neon.h>
 #else
 #error NEON is not enabled for this target
 #endif
 int main() {
-    uint32x4_t value = vdupq_n_u32(1);
-    return static_cast<int>(vgetq_lane_u32(value, 0));
+    uint32_t data[16] = {};
+    uint32x4x2_t pair = vld2q_u32(data);
+    uint32x4_t a = pair.val[0];
+    uint32x4_t b = pair.val[1];
+    a = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(a)));
+    a = vreinterpretq_u32_u16(vrev32q_u16(vreinterpretq_u16_u32(a)));
+    a = vextq_u32(a, b, 3);
+    a = vsetq_lane_u32(vgetq_lane_u32(b, 3), a, 0);
+    a = vsliq_n_u32(vshrq_n_u32(a, 31), a, 1);
+    a = vsraq_n_u32(a, a, 31);
+    uint32x4_t mask = vcgeq_s32(vreinterpretq_s32_u32(a), vdupq_n_s32(0));
+    a = vaddq_u32(a, b);
+    a = vsubq_u32(a, b);
+    a = veorq_u32(a, mask);
+    a = vorrq_u32(a, b);
+    uint32x4x2_t out = { a, b };
+    vst2q_u32(data, out);
+    return static_cast<int>(vgetq_lane_u32(a, 0));
 }
 " LIBARIBB25_TARGET_HAS_NEON)
-option(USE_NEON "enable NEON when supported by the compiler target" ${LIBARIBB25_TARGET_HAS_NEON})
+
+set(LIBARIBB25_USE_NEON_DEFAULT OFF)
+if(LIBARIBB25_TARGET_HAS_NEON AND NOT LIBARIBB25_TARGET_BIG_ENDIAN)
+	set(LIBARIBB25_USE_NEON_DEFAULT ON)
+endif()
+option(USE_NEON "enable the little-endian NEON Multi2 implementation when supported by the compiler target" ${LIBARIBB25_USE_NEON_DEFAULT})
+if(USE_NEON AND LIBARIBB25_TARGET_BIG_ENDIAN)
+	message(FATAL_ERROR "USE_NEON=ON requested, but the current Multi2 NEON implementation supports little-endian targets only")
+endif()
 if(USE_NEON AND NOT LIBARIBB25_TARGET_HAS_NEON)
-	message(FATAL_ERROR "USE_NEON=ON requested, but the current compiler target cannot compile NEON intrinsics")
+	message(FATAL_ERROR "USE_NEON=ON requested, but the current compiler target cannot compile the required NEON intrinsics")
 endif()
 if(USE_NEON)
 	add_definitions("-DLIBARIBB25_USE_NEON")
@@ -257,7 +286,7 @@ if(UNIX AND NOT CYGWIN)
 
 	add_custom_target(create_symlinks ALL)
 
-	# ---------- libaribb1 ----------
+# ---------- libaribb1 ----------
 
 	configure_file(aribb25/libaribb1.pc.in ${CMAKE_SHARED_LIBRARY_PREFIX}${ARIBB1_LIB_NAME}.pc @ONLY)
 	add_custom_command(TARGET create_symlinks COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SHARED_LIBRARY_PREFIX}${ARIBB1_LIB_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX} symlink-${CMAKE_SHARED_LIBRARY_PREFIX}${ARIBB1_LIB_NAME})
@@ -275,7 +304,7 @@ if(UNIX AND NOT CYGWIN)
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/symlink-${ARIBB1_LIB_NAME} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} RENAME arib1)
 	install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -DLDCONFIG_EXECUTABLE=${LDCONFIG_EXECUTABLE} -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/PostInstall.cmake)")
 
-	# ---------- libaribb25 ----------
+# ---------- libaribb25 ----------
 
 	configure_file(aribb25/libaribb25.pc.in ${CMAKE_SHARED_LIBRARY_PREFIX}${ARIBB25_LIB_NAME}.pc @ONLY)
 	add_custom_command(TARGET create_symlinks COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SHARED_LIBRARY_PREFIX}${ARIBB25_LIB_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX} symlink-${CMAKE_SHARED_LIBRARY_PREFIX}${ARIBB25_LIB_NAME})
@@ -302,13 +331,13 @@ if(UNIX AND NOT CYGWIN)
 
 elseif(WIN32)
 
-	# ---------- libaribb1 ----------
+# ---------- libaribb1 ----------
 
 	install(TARGETS b1 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 	install(TARGETS aribb1-static aribb1-shared ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR})
 	install(FILES aribb25/arib_std_b25_error_code.h aribb25/arib_std_b25.h aribb25/b_cas_card_error_code.h aribb25/b_cas_card.h aribb25/multi2.h aribb25/portable.h aribb25/simd_instruction_type.h aribb25/ts_common_types.h aribb25/ts_section_parser_error_code.h aribb25/ts_section_parser.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aribb1)
 
-	# ---------- libaribb25 ----------
+# ---------- libaribb25 ----------
 
 	install(TARGETS b25 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 	install(TARGETS aribb25-static aribb25-shared ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR})

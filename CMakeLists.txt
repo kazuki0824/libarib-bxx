@@ -38,7 +38,12 @@ endif()
 option(USE_AVX2 "enable AVX2" OFF)
 
 test_big_endian(LIBARIBB25_TARGET_BIG_ENDIAN)
-check_cxx_source_compiles("#if defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM64EC))
+check_cxx_source_compiles("#if !defined(__arm__) && !defined(_M_ARM)
+#error Not an ARM32 target
+#endif
+int main() { return 0; }
+" LIBARIBB25_TARGET_IS_ARM32)
+set(LIBARIBB25_NEON_TEST_SOURCE "#if defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM64EC))
 #include <arm64_neon.h>
 #elif defined(_MSC_VER) && defined(_M_ARM)
 #include <arm_neon.h>
@@ -51,15 +56,26 @@ int main() {
     uint32x4_t value = vdupq_n_u32(0);
     return static_cast<int>(vgetq_lane_u32(value, 0));
 }
-" LIBARIBB25_TARGET_HAS_NEON)
+")
+check_cxx_source_compiles("${LIBARIBB25_NEON_TEST_SOURCE}" LIBARIBB25_TARGET_HAS_NEON)
 
 set(LIBARIBB25_USE_NEON_DEFAULT OFF)
-if(LIBARIBB25_TARGET_HAS_NEON AND NOT LIBARIBB25_TARGET_BIG_ENDIAN)
+if(LIBARIBB25_TARGET_HAS_NEON AND NOT LIBARIBB25_TARGET_BIG_ENDIAN AND NOT LIBARIBB25_TARGET_IS_ARM32)
 	set(LIBARIBB25_USE_NEON_DEFAULT ON)
 endif()
 option(USE_NEON "enable the little-endian NEON Multi2 implementation when supported by the compiler target" ${LIBARIBB25_USE_NEON_DEFAULT})
 if(USE_NEON AND LIBARIBB25_TARGET_BIG_ENDIAN)
 	message(FATAL_ERROR "USE_NEON=ON requested, but the current Multi2 NEON implementation supports little-endian targets only")
+endif()
+if(USE_NEON AND LIBARIBB25_TARGET_IS_ARM32 AND CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang)")
+	set(LIBARIBB25_SAVED_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
+	set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -mfpu=neon")
+	check_cxx_source_compiles("${LIBARIBB25_NEON_TEST_SOURCE}" LIBARIBB25_TARGET_HAS_NEON_WITH_MFPU)
+	set(CMAKE_REQUIRED_FLAGS "${LIBARIBB25_SAVED_CMAKE_REQUIRED_FLAGS}")
+	if(LIBARIBB25_TARGET_HAS_NEON_WITH_MFPU)
+		set(LIBARIBB25_TARGET_HAS_NEON ON)
+		set(LIBARIBB25_NEON_CXX_FLAG "-mfpu=neon")
+	endif()
 endif()
 if(USE_NEON AND NOT LIBARIBB25_TARGET_HAS_NEON)
 	message(FATAL_ERROR "USE_NEON=ON requested, but the current compiler target cannot compile the required NEON intrinsics")
@@ -173,6 +189,9 @@ else()
 endif()
 set_target_properties(aribb1-objlib PROPERTIES COMPILE_DEFINITIONS ARIBB1_DLL)
 target_compile_definitions(aribb1-objlib PRIVATE ENABLE_ARIB_STD_B1)
+if(LIBARIBB25_NEON_CXX_FLAG)
+	target_compile_options(aribb1-objlib PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${LIBARIBB25_NEON_CXX_FLAG}>)
+endif()
 
 add_library(aribb1-static STATIC $<TARGET_OBJECTS:aribb1-objlib>)
 set_target_properties(aribb1-static PROPERTIES OUTPUT_NAME ${ARIBB1_LIB_NAME})
@@ -220,6 +239,9 @@ else()
 	add_library(aribb25-objlib OBJECT aribb25/arib_std_b25.c aribb25/b_cas_card.c aribb25/multi2.cc aribb25/ts_section_parser.c aribb25/version_b25.c)
 endif()
 set_target_properties(aribb25-objlib PROPERTIES COMPILE_DEFINITIONS ARIBB25_DLL)
+if(LIBARIBB25_NEON_CXX_FLAG)
+	target_compile_options(aribb25-objlib PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${LIBARIBB25_NEON_CXX_FLAG}>)
+endif()
 
 add_library(aribb25-static STATIC $<TARGET_OBJECTS:aribb25-objlib>)
 set_target_properties(aribb25-static PROPERTIES OUTPUT_NAME ${ARIBB25_LIB_NAME})

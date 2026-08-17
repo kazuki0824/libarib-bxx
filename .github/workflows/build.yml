@@ -88,3 +88,18 @@ jobs:
           x64\Release\arib-b1-stream-test.exe --help 2>&1 | findstr "ARIB STD-B1"
           Win32\Release\arib-b25-stream-test.exe --help 2>&1 | findstr "ARIB STD-B25"
           x64\Release\arib-b25-stream-test.exe --help 2>&1 | findstr "ARIB STD-B25"
+
+  windows-arm64:
+    name: Windows ARM64 NEON
+    runs-on: windows-2025
+    steps:
+      - name: setup msbuild
+        uses: microsoft/setup-msbuild@v2
+      - uses: actions/checkout@v4
+      - name: configure
+        run: |
+          cmake --version
+          cmake -B build-arm64 -A ARM64
+          Select-String -Path build-arm64/CMakeCache.txt -Pattern '^USE_NEON:BOOL=ON$'
+      - name: build
+        run: cmake --build build-arm64 --config Release

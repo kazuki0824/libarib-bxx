@@ -2,6 +2,10 @@
 
 #if defined(LIBARIBB25_USE_NEON)
 
+#if !defined(_WIN32) && (!defined(__BYTE_ORDER__) || !defined(__ORDER_LITTLE_ENDIAN__) || (__BYTE_ORDER__) != (__ORDER_LITTLE_ENDIAN__))
+#error "Currently, USE_NEON is only for little-endian."
+#endif
+
 #include <utility>
 #if defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM64EC))
 #include <arm64_neon.h>

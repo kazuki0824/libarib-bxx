@@ -84,6 +84,8 @@ jobs:
         run: |
           msbuild arib_std_b25.sln /t:Build /p:Configuration=Release /p:Platform=Win32 /p:PlatformToolset=v142
           msbuild arib_std_b25.sln /t:Build /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v142
+          msbuild tests\multi2_kat.vcxproj /t:Build /p:Configuration=Release /p:Platform=Win32 /p:PlatformToolset=v142
+          msbuild tests\multi2_kat.vcxproj /t:Build /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v142
       - name: test
         run: |
           Win32\Release\b1.exe 2>&1 | findstr "ARIB STD-B1"
@@ -94,6 +96,8 @@ jobs:
           x64\Release\arib-b1-stream-test.exe --help 2>&1 | findstr "ARIB STD-B1"
           Win32\Release\arib-b25-stream-test.exe --help 2>&1 | findstr "ARIB STD-B25"
           x64\Release\arib-b25-stream-test.exe --help 2>&1 | findstr "ARIB STD-B25"
+          Win32\Release\multi2-kat.exe
+          x64\Release\multi2-kat.exe
 
   windows-arm64:
     name: Windows ARM64 NEON
@@ -108,3 +112,4 @@ jobs:
           $arm64Props = (Resolve-Path 'aribb25\arm64-msbuild.props').Path
           msbuild aribb25\libaribb1.vcxproj /t:Build /p:Configuration=Release /p:Platform=ARM64 /p:ConfigurationType=DynamicLibrary /p:PlatformToolset=v143 /p:UseDebugLibraries=false /p:ForceImportBeforeCppTargets="$arm64Props"
           msbuild aribb25\libaribb25.vcxproj /t:Build /p:Configuration=Release /p:Platform=ARM64 /p:ConfigurationType=DynamicLibrary /p:PlatformToolset=v143 /p:UseDebugLibraries=false /p:ForceImportBeforeCppTargets="$arm64Props"
+          msbuild tests\multi2_kat.vcxproj /t:Build /p:Configuration=Release /p:Platform=ARM64 /p:PlatformToolset=v143

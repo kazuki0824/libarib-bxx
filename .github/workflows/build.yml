@@ -36,6 +36,9 @@ jobs:
           ./build/b25 2>&1 | grep --color=always "ARIB STD-B25"
           ./build/arib-b1-stream-test --help 2>&1 | grep --color=always "ARIB STD-B1"
           ./build/arib-b25-stream-test --help 2>&1 | grep --color=always "ARIB STD-B25"
+          if [ "$(uname -m)" = "aarch64" ]; then MULTI2_FLAGS=-DLIBARIBB25_USE_NEON; else MULTI2_FLAGS=; fi
+          ${{ matrix.cxx }} -std=c++11 -Iaribb25 $MULTI2_FLAGS tests/multi2_kat.cc aribb25/multi2.cc -o build/multi2-kat
+          ./build/multi2-kat
 
   macos:
     name: macOS
@@ -61,6 +64,9 @@ jobs:
           ./build/b25 2>&1 | grep --color=always "ARIB STD-B25"
           ./build/arib-b1-stream-test --help 2>&1 | grep --color=always "ARIB STD-B1"
           ./build/arib-b25-stream-test --help 2>&1 | grep --color=always "ARIB STD-B25"
+          if [ "$(uname -m)" = "arm64" ]; then MULTI2_FLAGS=-DLIBARIBB25_USE_NEON; else MULTI2_FLAGS=; fi
+          c++ -std=c++11 -Iaribb25 $MULTI2_FLAGS tests/multi2_kat.cc aribb25/multi2.cc -o build/multi2-kat
+          ./build/multi2-kat
 
   windows:
     name: Windows

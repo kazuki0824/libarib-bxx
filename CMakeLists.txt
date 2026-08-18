@@ -291,7 +291,7 @@ if(UNIX AND NOT CYGWIN)
 
 	add_custom_target(create_symlinks ALL)
 
-# ---------- libaribb1 ----------
+	# ---------- libaribb1 ----------
 
 	configure_file(aribb25/libaribb1.pc.in ${CMAKE_SHARED_LIBRARY_PREFIX}${ARIBB1_LIB_NAME}.pc @ONLY)
 	add_custom_command(TARGET create_symlinks COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SHARED_LIBRARY_PREFIX}${ARIBB1_LIB_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX} symlink-${CMAKE_SHARED_LIBRARY_PREFIX}${ARIBB1_LIB_NAME})
@@ -309,7 +309,7 @@ if(UNIX AND NOT CYGWIN)
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/symlink-${ARIBB1_LIB_NAME} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} RENAME arib1)
 	install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -DLDCONFIG_EXECUTABLE=${LDCONFIG_EXECUTABLE} -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/PostInstall.cmake)")
 
-# ---------- libaribb25 ----------
+	# ---------- libaribb25 ----------
 
 	configure_file(aribb25/libaribb25.pc.in ${CMAKE_SHARED_LIBRARY_PREFIX}${ARIBB25_LIB_NAME}.pc @ONLY)
 	add_custom_command(TARGET create_symlinks COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SHARED_LIBRARY_PREFIX}${ARIBB25_LIB_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX} symlink-${CMAKE_SHARED_LIBRARY_PREFIX}${ARIBB25_LIB_NAME})
@@ -336,13 +336,13 @@ if(UNIX AND NOT CYGWIN)
 
 elseif(WIN32)
 
-# ---------- libaribb1 ----------
+	# ---------- libaribb1 ----------
 
 	install(TARGETS b1 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 	install(TARGETS aribb1-static aribb1-shared ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR})
 	install(FILES aribb25/arib_std_b25_error_code.h aribb25/arib_std_b25.h aribb25/b_cas_card_error_code.h aribb25/b_cas_card.h aribb25/multi2.h aribb25/portable.h aribb25/simd_instruction_type.h aribb25/ts_common_types.h aribb25/ts_section_parser_error_code.h aribb25/ts_section_parser.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aribb1)
 
-# ---------- libaribb25 ----------
+	# ---------- libaribb25 ----------
 
 	install(TARGETS b25 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 	install(TARGETS aribb25-static aribb25-shared ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR})

@@ -96,10 +96,9 @@ jobs:
       - name: setup msbuild
         uses: microsoft/setup-msbuild@v2
       - uses: actions/checkout@v4
-      - name: configure
-        run: |
-          cmake --version
-          cmake -B build-arm64 -A ARM64
-          if (-not (Select-String -Path build-arm64/CMakeCache.txt -Pattern '^USE_NEON:BOOL=ON$' -Quiet)) { throw 'USE_NEON is not enabled' }
       - name: build
-        run: cmake --build build-arm64 --config Release
+        shell: pwsh
+        run: |
+          $arm64Props = (Resolve-Path 'aribb25\arm64-msbuild.props').Path
+          msbuild aribb25\libaribb1.vcxproj /t:Build /p:Configuration=Release /p:Platform=ARM64 /p:ConfigurationType=DynamicLibrary /p:PlatformToolset=v143 /p:UseDebugLibraries=false /p:ForceImportBeforeCppTargets="$arm64Props"
+          msbuild aribb25\libaribb25.vcxproj /t:Build /p:Configuration=Release /p:Platform=ARM64 /p:ConfigurationType=DynamicLibrary /p:PlatformToolset=v143 /p:UseDebugLibraries=false /p:ForceImportBeforeCppTargets="$arm64Props"

@@ -45,6 +45,63 @@ jobs:
           ${{ matrix.cxx }} -std=c++11 -Iaribb25 $MULTI2_FLAGS tests/multi2_kat.cc aribb25/multi2.cc -o build/multi2-kat
           ./build/multi2-kat
 
+  linux-arm32:
+    name: Linux ARM32 (${{ matrix.cc }}, NEON ${{ matrix.use_neon }})
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          - cc: gcc
+            cxx: g++
+            use_neon: OFF
+          - cc: gcc
+            cxx: g++
+            use_neon: ON
+          - cc: clang
+            cxx: clang++
+            use_neon: OFF
+          - cc: clang
+            cxx: clang++
+            use_neon: ON
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v4
+        with:
+          platforms: arm
+      - name: build and test ARMv7
+        run: |
+          docker run --rm --platform linux/arm/v7 \
+            -e CC=${{ matrix.cc }} \
+            -e CXX=${{ matrix.cxx }} \
+            -e USE_NEON=${{ matrix.use_neon }} \
+            -v "$PWD:/src" \
+            -w /src \
+            ubuntu:22.04 \
+            bash -euxo pipefail -c '
+              apt-get update
+              DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential clang cmake cmake-data libpcsclite-dev
+              build_dir="build-arm32-${CC}-${USE_NEON}"
+              cmake --version
+              cmake -B "$build_dir" \
+                -DCMAKE_C_COMPILER="$CC" \
+                -DCMAKE_CXX_COMPILER="$CXX" \
+                -DUSE_NEON="$USE_NEON"
+              grep -qx "LIBARIBB25_TARGET_IS_ARM32:INTERNAL=1" "$build_dir/CMakeCache.txt"
+              grep -qx "USE_NEON:BOOL=${USE_NEON}" "$build_dir/CMakeCache.txt"
+              cmake --build "$build_dir"
+              "$build_dir/b1" 2>&1 | grep "ARIB STD-B1"
+              "$build_dir/b25" 2>&1 | grep "ARIB STD-B25"
+              "$build_dir/arib-b1-stream-test" --help 2>&1 | grep "ARIB STD-B1"
+              "$build_dir/arib-b25-stream-test" --help 2>&1 | grep "ARIB STD-B25"
+              if [ "$USE_NEON" = "ON" ]; then
+                MULTI2_FLAGS="-mfpu=neon -DLIBARIBB25_USE_NEON"
+              else
+                MULTI2_FLAGS=
+              fi
+              "$CXX" -std=c++11 -Iaribb25 $MULTI2_FLAGS tests/multi2_kat.cc aribb25/multi2.cc -o "$build_dir/multi2-kat"
+              "$build_dir/multi2-kat"
+            '
+
   macos:
     name: macOS
     strategy:

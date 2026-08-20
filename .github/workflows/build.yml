@@ -178,9 +178,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: build
         run: |
-          msbuild aribb25\libaribb1.vcxproj /t:Build /p:Configuration=Release /p:Platform=ARM64
-          msbuild aribb25\libaribb25.vcxproj /t:Build /p:Configuration=Release /p:Platform=ARM64
+          msbuild arib_std_b25.sln /t:Build /p:Configuration=Release /p:Platform=ARM64
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
           cmd /c "`"$vs\Common7\Tools\VsDevCmd.bat`" -arch=arm64 -host_arch=arm64 && cl /nologo /EHsc /I aribb25 /D LIBARIBB25_USE_NEON tests\multi2_kat.cc aribb25\multi2.cc /Fe:ARM64\Release\multi2-kat.exe"
       - name: test
-        run: ARM64\Release\multi2-kat.exe
+        run: |
+          ARM64\Release\b1.exe 2>&1 | findstr "ARIB STD-B1"
+          ARM64\Release\b25.exe 2>&1 | findstr "ARIB STD-B25"
+          ARM64\Release\arib-b1-stream-test.exe --help 2>&1 | findstr "ARIB STD-B1"
+          ARM64\Release\arib-b25-stream-test.exe --help 2>&1 | findstr "ARIB STD-B25"
+          ARM64\Release\multi2-kat.exe

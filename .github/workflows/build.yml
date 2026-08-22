@@ -48,6 +48,8 @@ jobs:
   linux-arm32:
     name: Linux ARM32 (${{ matrix.cc }}, NEON ${{ matrix.use_neon }})
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     strategy:
       matrix:
         include:
@@ -65,6 +67,8 @@ jobs:
             use_neon: ON
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: docker/setup-qemu-action@v4
         with:
           platforms: arm

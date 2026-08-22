@@ -93,10 +93,18 @@ jobs:
               grep -qx "LIBARIBB25_TARGET_IS_ARM32:INTERNAL=1" "$build_dir/CMakeCache.txt"
               grep -qx "USE_NEON:BOOL=${USE_NEON}" "$build_dir/CMakeCache.txt"
               cmake --build "$build_dir"
-              "$build_dir/b1" 2>&1 | grep "ARIB STD-B1"
-              "$build_dir/b25" 2>&1 | grep "ARIB STD-B25"
-              "$build_dir/arib-b1-stream-test" --help 2>&1 | grep "ARIB STD-B1"
-              "$build_dir/arib-b25-stream-test" --help 2>&1 | grep "ARIB STD-B25"
+              check_usage() {
+                expected="$1"
+                shift
+                status=0
+                output=$("$@" 2>&1) || status=$?
+                printf "%s\n" "$output" | grep -F "$expected"
+                [ "$status" -eq 1 ]
+              }
+              check_usage "ARIB STD-B1" "$build_dir/b1"
+              check_usage "ARIB STD-B25" "$build_dir/b25"
+              check_usage "ARIB STD-B1" "$build_dir/arib-b1-stream-test" --help
+              check_usage "ARIB STD-B25" "$build_dir/arib-b25-stream-test" --help
               if [ "$USE_NEON" = "ON" ]; then
                 MULTI2_FLAGS="-mfpu=neon -DLIBARIBB25_USE_NEON"
               else
